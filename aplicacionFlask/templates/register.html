@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Contact</title>
+    <title>Register</title>
   </head>
   <body>
-    <h1>Contacta a {{ nombre }}</h1>
+    <h1>Registro de Usuario</h1>
 
     {% with messages = get_flashed_messages() %} {% if messages %}
     <ul>
@@ -16,14 +16,14 @@
     </ul>
     {% endif %} {% endwith %}
 
-    <form action="/contact" method="post">
-      <label for="name">Nombre:</label><br />
-      <input type="text" id="name" name="name" /><br />
+    <form action="/register" method="post">
+      <label for="username">Nombre de Usuario:</label><br />
+      <input type="text" id="username" name="username" /><br />
       <label for="email">Correo electrónico:</label><br />
       <input type="email" id="email" name="email" /><br />
-      <label for="message">Mensaje:</label><br />
-      <textarea id="message" name="message"></textarea><br /><br />
-      <input type="submit" value="Enviar" />
+      <label for="password">Contraseña:</label><br />
+      <input type="password" id="password" name="password" /><br /><br />
+      <input type="submit" value="Registrar" />
     </form>
   </body>
 </html>
