@@ -1,5 +1,37 @@
+### Continuación del Curso
+
+Ahora que hemos cubierto las sesiones y autenticación de usuarios, así como la corrección de errores comunes, vamos a continuar con la siguiente parte del curso.
+
+### Clase 5: Manejo de Bases de Datos con SQLAlchemy
+
+#### Objetivo
+
+- Introducir el uso de bases de datos en Flask.
+- Configurar SQLAlchemy en una aplicación Flask.
+- Definir modelos y realizar operaciones CRUD (Crear, Leer, Actualizar, Eliminar).
+
+#### Temas a cubrir
+
+1. Configuración de SQLAlchemy en Flask.
+2. Definición de modelos.
+3. Realización de operaciones CRUD.
+
+### Configuración de SQLAlchemy en Flask
+
+#### Paso 1: Instalar Flask-SQLAlchemy
+
+Primero, necesitamos instalar la extensión Flask-SQLAlchemy:
+
+```bash
+pip install Flask-SQLAlchemy
+```
+
+#### Paso 2: Configurar SQLAlchemy
+
+Modifiquemos nuestro archivo `app.py` para incluir la configuración de SQLAlchemy.
+
+```python
 from flask import Flask, render_template, request, flash, redirect, url_for, session
-from validar_contrasena import validar_contrasena
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -18,71 +50,50 @@ class Usuario(db.Model):
 
     def __repr__(self):
         return f'<Usuario {self.username}>'
-      
+
 # Resto del código de la aplicación...
 
-# Decorador para rutas protegidas (para proteger rutas que requieren autenticación)
-def login_required(f):
-    def wrap(*args, **kwargs):
-        if 'username' not in session:
-            flash('Necesitas iniciar sesión primero')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    wrap.__name__ = f.__name__
-    return wrap
+if __name__ == '__main__':
+    db.create_all()  # Crear las tablas en la base de datos
+    app.run(debug=True)
+```
 
-@app.route('/')
-def home():
-    nombre = "Pablo"
-    return render_template('index.html', nombre=nombre)
+### Definición de Modelos
 
-@app.route('/about')
-def about():
-    nombre = "Pablo"
-    return render_template('about.html', nombre=nombre)
-  
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
-    if request.method == 'POST':
-        nombre = request.form['name']
-        email = request.form['email']
-        mensaje = request.form['message']
+Hemos definido un modelo `Usuario` con los campos `id`, `username`, `email` y `password`. Ahora vamos a modificar nuestras rutas para interactuar con la base de datos.
 
-        if not nombre or not email or not mensaje:
-            flash('Todos los campos son obligatorios')
-            return render_template('contact2.html')
+### Realización de operaciones CRUD
 
-        return f"Gracias por tu mensaje, {nombre}. Te contactaremos pronto a {email}."
-    return render_template('contact2.html')
+#### Registro de Usuarios
 
+Actualicemos la ruta `/register` para guardar los datos de usuario en la base de datos:
+
+```python
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        
-    
+
         if not username or not email or not password:
             flash('Todos los campos son obligatorios')
-            return render_template('register.html')
-          
-        try:
-            validar_contrasena(password)
-        except ValueError as e:
-            # Mostrar mensaje de error al usuario
-            flash(e)
             return render_template('register.html')
 
         nuevo_usuario = Usuario(username=username, email=email, password=password)
         db.session.add(nuevo_usuario)
         db.session.commit()
 
-        flash(f'Registro exitoso. Bienvenido, {username}!')
-        return redirect(url_for('profile'))
+        flash('Registro exitoso. Bienvenido, {username}!')
+        return redirect(url_for('login'))
     return render_template('register.html')
+```
 
+#### Autenticación de Usuarios
 
+Actualizaremos la ruta `/login` para verificar las credenciales del usuario desde la base de datos:
+
+```python
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -99,23 +110,13 @@ def login():
         flash('Inicio de sesión exitoso')
         return redirect(url_for('home'))
     return render_template('login.html')
-  
-# Añadimos la ruta /logout para cerrar la sesión.
-@app.route('/logout')
-def logout():
-    session.pop('username', None)
-    flash('Sesión cerrada exitosamente')
-    return redirect(url_for('home'))
-  
+```
 
-  
-# Añadimos la ruta /profile que está protegida por el decorador login_required.
-@app.route('/profile')
-@login_required
-def profile():
-    username = session['username']
-    return f"Bienvenido a tu perfil, {username}!"
+#### Cambio de Contraseña
 
+Actualizaremos la ruta `/change_password` para que interactúe con la base de datos:
+
+```python
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
@@ -138,13 +139,6 @@ def change_password():
         if new_password != confirm_password:
             flash('Las contraseñas no coinciden')
             return render_template('change_password.html')
-          
-        try:
-            validar_contrasena(new_password)
-        except ValueError as e:
-            # Mostrar mensaje de error al usuario
-            flash(e)
-            return render_template('change_password.html')
 
         usuario.password = new_password
         db.session.commit()
@@ -152,7 +146,26 @@ def change_password():
         flash('Contraseña cambiada exitosamente')
         return redirect(url_for('profile'))
     return render_template('change_password.html')
-  
+```
+
+### Tarea para los alumnos
+
+Ahora que hemos integrado SQLAlchemy para manejar nuestros datos de usuarios, quiero que implementen las siguientes funcionalidades adicionales:
+
+1. **Ruta para eliminar una cuenta de usuario**:
+
+   - Cree una ruta `/delete_account` que permita a los usuarios eliminar su cuenta.
+   - Asegúrese de que la ruta está protegida por el decorador `login_required`.
+   - Confirme la eliminación de la cuenta antes de proceder.
+
+2. **Ruta para actualizar el perfil del usuario**:
+   - Cree una ruta `/update_profile` que permita a los usuarios actualizar su nombre de usuario y correo electrónico.
+   - Asegúrese de que la ruta está protegida por el decorador `login_required`.
+   - Valide que el nuevo nombre de usuario y correo electrónico no estén ya en uso.
+
+#### Sugerencia de código para eliminar una cuenta:
+
+```python
 @app.route('/delete_account', methods=['GET', 'POST'])
 @login_required
 def delete_account():
@@ -166,7 +179,11 @@ def delete_account():
         flash('Cuenta eliminada exitosamente')
         return redirect(url_for('home'))
     return render_template('delete_account.html')
+```
 
+#### Sugerencia de código para actualizar el perfil:
+
+```python
 @app.route('/update_profile', methods=['GET', 'POST'])
 @login_required
 def update_profile():
@@ -197,12 +214,6 @@ def update_profile():
         flash('Perfil actualizado exitosamente')
         return redirect(url_for('profile'))
     return render_template('update_profile.html')
+```
 
-# Crear las tablas en la base de datos
-with app.app_context():
-    db.create_all()
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
-
+Con estas tareas adicionales, estarán en camino de crear una aplicación web robusta y bien estructurada utilizando Flask y SQLAlchemy. ¡Buena suerte y feliz codificación!
