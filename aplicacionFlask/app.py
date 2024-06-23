@@ -1,18 +1,40 @@
 from flask import Flask, render_template, request, flash, redirect, url_for, session
 from validar_contrasena import validar_contrasena
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'
+app.secret_key = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///usuarios.db'  # Configurar la URI de la base de datos
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+app.config['MAIL_MAX_EMAILS'] = None
+app.config['MAIL_SUPPRESS_SEND'] = False
+app.config['MAIL_ASCII_ATTACHMENTS'] = False
+app.config['MAIL_TIMEOUT'] = 60  # Aumenta el tiempo de espera a 60 segundos
+
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+mail = Mail(app)
+s = URLSafeTimedSerializer(app.secret_key)
 
 # Definición del modelo de usuario
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(79), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
 
@@ -55,6 +77,7 @@ def contact():
         return f"Gracias por tu mensaje, {nombre}. Te contactaremos pronto a {email}."
     return render_template('contact2.html')
 
+# register
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -107,14 +130,68 @@ def logout():
     flash('Sesión cerrada exitosamente')
     return redirect(url_for('home'))
   
+@app.route('/reset_request', methods=['GET', 'POST'])
+def reset_request():
+    if request.method == 'POST':
+        email = request.form['email']
+        usuario = Usuario.query.filter_by(email=email).first()
+        if usuario:
+            token = s.dumps(email, salt='email-reset-salt')
+            msg = Message('Restablecer Contraseña', sender=os.getenv('MAIL_USERNAME'), recipients=[email])
+            link = url_for('reset_token', token=token, _external=True)
+            msg.body = f'Para restablecer tu contraseña, haz clic en el siguiente enlace: {link}'
+            mail.send(msg)
+            flash('Se ha enviado un enlace de restablecimiento de contraseña a tu correo electrónico.')
+            return redirect(url_for('login'))
+        else:
+            flash('No se encontró ninguna cuenta con ese correo electrónico.')
+            return render_template('reset_request.html')
+    return render_template('reset_request.html')
+  
+@app.route('/reset_token/<token>', methods=['GET', 'POST'])
+def reset_token(token):
+    try:
+        email = s.loads(token, salt='email-reset-salt', max_age=3600)
+    except SignatureExpired:
+        flash('El enlace de restablecimiento ha expirado.')
+        return redirect(url_for('reset_request'))
 
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        if not new_password or not confirm_password:
+            flash('Todos los campos son obligatorios.')
+            return render_template('reset_token.html', token=token)
+
+        if new_password != confirm_password:
+            flash('Las contraseñas no coinciden.')
+            return render_template('reset_token.html', token=token)
+          
+        try:
+            validar_contrasena(new_password)
+        except ValueError as e:
+            # Mostrar mensaje de error al usuario
+            flash(e)
+            return render_template('reset_request.html')
+
+        usuario = Usuario.query.filter_by(email=email).first()
+        usuario.password = new_password
+        db.session.commit()
+
+        flash('Tu contraseña ha sido restablecida exitosamente.')
+        return redirect(url_for('login'))
+
+    return render_template('reset_token.html', token=token)
   
 # Añadimos la ruta /profile que está protegida por el decorador login_required.
 @app.route('/profile')
 @login_required
 def profile():
     username = session['username']
-    return f"Bienvenido a tu perfil, {username}!"
+    # return f"Bienvenido a tu perfil, {username}!"
+    return render_template('profile.html', username=username)
+  
 
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required

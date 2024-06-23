@@ -3,3 +3,5 @@ jg/
 static/
 entornoFlask/
 nombre_del_entorno/
+migrations/
+instance/
