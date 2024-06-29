@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Subir Foto de Perfil</title>
+  </head>
+  <body>
+    <h1>Subir Foto de Perfil</h1>
+
+    {% with messages = get_flashed_messages() %} {% if messages %}
+    <ul>
+      {% for message in messages %}
+      <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %} {% endwith %}
+
+    <form
+      action="/upload_profile_pic"
+      method="post"
+      enctype="multipart/form-data"
+    >
+      <label for="profile_pic">Selecciona una foto:</label><br />
+      <input type="file" id="profile_pic" name="profile_pic" /><br /><br />
+      <input type="submit" value="Subir Foto" />
+    </form>
+  </body>
+</html>

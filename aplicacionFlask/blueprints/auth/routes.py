@@ -7,6 +7,7 @@ from validar_contrasena import validar_contrasena
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import os
+import datetime
 
 # auth_bp = Blueprint('auth', __name__)
 
@@ -24,15 +25,18 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        usuario = Usuario.query.filter_by(username=username).first()
+        usuario = Usuario.query.filter_by(username=username, password=password).first()
 
-        if not usuario or usuario.password != password:
-            flash('Nombre de usuario o contraseña incorrectos')
-            return render_template('login.html')
+        if usuario and usuario.is_active:
+            session['username'] = username
+            flash('Has iniciado sesión exitosamente.')
+            return redirect(url_for('user.profile'))
+        elif usuario and not usuario.is_active:
+            flash('Tu cuenta no está activada. Por favor, verifica tu correo electrónico.')
+        else:
+            flash('Nombre de usuario o contraseña incorrectos.')
+       
 
-        session['username'] = username
-        flash('Inicio de sesión exitoso')
-        return redirect(url_for('main.home'))
     return render_template('login.html')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
@@ -41,11 +45,20 @@ def register():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        user_profile_pic = ""
+        user_created_at = datetime.datetime.now()
+        user_is_active = True
         
         print("Password: ", password)
 
         if not username or not email or not password:
             flash('Todos los campos son obligatorios')
+            return render_template('register.html')
+        
+        # Verificar si el usuario ya existe
+        usuario_existente = Usuario.query.filter_by(email=email).first()
+        if usuario_existente:
+            flash('El correo electrónico ya está registrado.')
             return render_template('register.html')
 
         try:
@@ -53,16 +66,47 @@ def register():
         except ValueError as e:
             flash(e)
             return render_template('register.html')
+          
+        print("NOMBRE:", username)
+        print("CONTRASEÑA:", password)
 
         
-        nuevo_usuario = Usuario(username=username, email=email, password=password)
+        # Crear nuevo usuario
+        nuevo_usuario = Usuario(username=username, email=email, password=password,
+        profile_pic=user_profile_pic, created_at= user_created_at, is_active=user_is_active)
         db.session.add(nuevo_usuario)
         db.session.commit()
         
-
-        flash(f'Registro exitoso. Bienvenido, {username}!')
-        return redirect(url_for('user.profile'))
+        # Enviar correo de verificación
+        token = s.dumps(email, salt='email-confirm-salt')
+        msg = Message('Confirma tu correo electrónico', sender=os.getenv('MAIL_USERNAME'), recipients=[email])
+        link = url_for('auth.confirm_email', token=token, _external=True)
+        msg.body = f'Para activar tu cuenta, haz clic en el siguiente enlace: {link}'
+        mail.send(msg)
+        
+        flash('Se ha enviado un enlace de verificación a tu correo electrónico.')
+        return redirect(url_for('auth.login'))
+       
     return render_template('register.html')
+
+
+@auth_bp.route('/confirm_email/<token>')
+def confirm_email(token):
+    try:
+        email = s.loads(token, salt='email-confirm-salt', max_age=3600)
+    except SignatureExpired:
+        flash('El enlace de verificación ha expirado.')
+        return redirect(url_for('login'))
+
+    usuario = Usuario.query.filter_by(email=email).first()
+    if usuario:
+        usuario.is_active = True
+        db.session.commit()
+        flash('Tu cuenta ha sido activada exitosamente.')
+    else:
+        flash('La verificación de correo falló.')
+    return redirect(url_for('login'))
+
 
 @auth_bp.route('/logout')
 def logout():

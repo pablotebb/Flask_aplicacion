@@ -1,0 +1,20 @@
+<!-- <p>Correo electrónico: {{ usuario.email }}</p>
+    <p>
+      Fecha de creación de la cuenta: {{ usuario.created_at.strftime('%Y-%m-%d
+      %H:%M:%S') }}
+    </p> -->
+
+<!-- <p>
+      {% if usuario.otp_secret %} Autenticación de dos factores: Activada
+      <br />
+      <a href="{{ url_for('disable_2fa') }}">Desactivar 2FA</a>
+      {% else %} Autenticación de dos factores: Desactivada
+      <br />
+      <a href="{{ url_for('setup_2fa') }}">Activar 2FA</a>
+      {% endif %}
+    </p> -->
+
+<!-- <a href="{{ url_for('change_password') }}">Cambiar Contraseña</a><br />
+    <a href="{{ url_for('update_profile') }}">Actualizar Perfil</a><br />
+    <a href="{{ url_for('upload_profile_pic') }}">Subir Foto de Perfil</a><br />
+    <a href="{{ url_for('delete_account') }}">Eliminar Cuenta</a><br /> -->

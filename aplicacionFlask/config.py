@@ -17,3 +17,4 @@ class Config:
     MAIL_SUPPRESS_SEND = False
     MAIL_ASCII_ATTACHMENTS = False
     MAIL_TIMEOUT = 60  # Aumenta el tiempo de espera a 60 segundos
+    UPLOADED_PHOTOS_DEST = 'static/uploads'

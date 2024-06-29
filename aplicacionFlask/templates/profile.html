@@ -6,6 +6,25 @@
     <title>Perfil de Usuario</title>
   </head>
   <body>
-    <h1>Bienvenido a tu perfil, {{ username }}!</h1>
+    <h1>Bienvenido a tu perfil, {{ usuario.username }}!</h1>
+
+    <p>Correo Electrónico: {{ usuario.email }}</p>
+    <p>Fecha de Creación: {{ usuario.created_at }}</p>
+
+    {% with messages = get_flashed_messages() %} {% if messages %}
+    <ul>
+      {% for message in messages %}
+      <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %} {% endwith %} {% if usuario.profile_pic %}
+    <img
+      src="{{ url_for('static', filename='uploads/' + usuario.profile_pic) }}"
+      alt="Foto de Perfil"
+      width="150"
+    />
+    {% else %}
+    <p>No has subido una foto de perfil.</p>
+    {% endif %}
   </body>
 </html>
