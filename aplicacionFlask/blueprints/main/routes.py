@@ -3,15 +3,18 @@ from . import main_bp
 
 # main_bp = Blueprint('main', __name__)
 
+
 @main_bp.route('/')
 def home():
     nombre = "Pablo"
+    print("NOMBRE:", nombre)
     return render_template('index.html', nombre=nombre)
 
 @main_bp.route('/about')
 def about():
     nombre = "Pablo"
     return render_template('about.html', nombre=nombre)
+  
 
 @main_bp.route('/contact', methods=['GET', 'POST'])
 def contact():
@@ -26,3 +29,5 @@ def contact():
 
         return f"Gracias por tu mensaje, {nombre}. Te contactaremos pronto a {email}."
     return render_template('contact2.html')
+  
+  

@@ -28,9 +28,12 @@ def login():
         usuario = Usuario.query.filter_by(username=username, password=password).first()
 
         if usuario and usuario.is_active:
-            session['username'] = username
-            flash('Has iniciado sesión exitosamente.')
-            return redirect(url_for('user.profile'))
+            if pyotp.TOTP(usuario.otp_secret).verify(otp):
+                session['username'] = username
+                flash('Has iniciado sesión exitosamente.')
+                return redirect(url_for('auth.profile'))
+            else:
+                flash('Código OTP inválido.')
         elif usuario and not usuario.is_active:
             flash('Tu cuenta no está activada. Por favor, verifica tu correo electrónico.')
         else:
@@ -96,7 +99,10 @@ def confirm_email(token):
         email = s.loads(token, salt='email-confirm-salt', max_age=3600)
     except SignatureExpired:
         flash('El enlace de verificación ha expirado.')
-        return redirect(url_for('login'))
+        return redirect(url_for('resend_verification'))
+    except Exception as e:
+        flash('Enlace de verificación inválido. Por favor, solicita un nuevo enlace.')
+        return redirect(url_for('resend_verification'))
 
     usuario = Usuario.query.filter_by(email=email).first()
     if usuario:
@@ -106,6 +112,23 @@ def confirm_email(token):
     else:
         flash('La verificación de correo falló.')
     return redirect(url_for('login'))
+  
+@auth_bp.route('/resend_verification', methods=['GET', 'POST'])
+def resend_verification():
+    if request.method == 'POST':
+        email = request.form['email']
+        usuario = Usuario.query.filter_by(email=email).first()
+
+        if usuario and not usuario.is_active:
+            token = s.dumps(email, salt='email-confirm-salt')
+            msg = Message('Confirma tu correo electrónico', sender='your-email@example.com', recipients=[email])
+            link = url_for('confirm_email', token=token, _external=True)
+            msg.body = f'Para activar tu cuenta, haz clic en el siguiente enlace: {link}'
+            mail.send(msg)
+            flash('Se ha enviado un nuevo enlace de verificación a tu correo electrónico.')
+        else:
+            flash('Correo electrónico no registrado o cuenta ya activada.')
+    return render_template('resend_verification.html')
 
 
 @auth_bp.route('/logout')
@@ -161,8 +184,7 @@ def reset_token(token):
             validar_contrasena(new_password)
         except ValueError as e:
             flash(e)
-            return render_template('reset_token.html', token=token)
-
+            return render_template('reset_request.html')
         usuario = Usuario.query.filter_by(email=email).first()
         usuario.password = new_password
         db.session.commit()

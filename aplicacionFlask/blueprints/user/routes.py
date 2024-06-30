@@ -25,7 +25,7 @@ def login_required(f):
         return f(*args, **kwargs)
     wrap.__name__ = f.__name__
     return wrap
-
+  
 
 # Añadimos la ruta /profile que está protegida por el decorador login_required.
 @user_bp.route('/profile')
@@ -174,3 +174,21 @@ def upload_profile_pic():
         flash('Foto de perfil subida y redimensionada exitosamente')
         return redirect(url_for('user.profile'))
     return render_template('upload_profile_pic.html') 
+
+@app.route('/setup_2fa')
+@login_required
+def setup_2fa():
+    username = session['username']
+    usuario = Usuario.query.filter_by(username=username).first()
+
+    if not usuario.otp_secret:
+        usuario.otp_secret = pyotp.random_base32()
+        db.session.commit()
+
+    otp_uri = pyotp.totp.TOTP(usuario.otp_secret).provisioning_uri(username, issuer_name="Your Flask App")
+    qr = qrcode.make(otp_uri)
+    img = io.BytesIO()
+    qr.save(img)
+    img.seek(0)
+
+    return send_file(img, mimetype="image/png")
