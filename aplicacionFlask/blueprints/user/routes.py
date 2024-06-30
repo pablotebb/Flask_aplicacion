@@ -175,7 +175,7 @@ def upload_profile_pic():
         return redirect(url_for('user.profile'))
     return render_template('upload_profile_pic.html') 
 
-@app.route('/setup_2fa')
+@user_bp.route('/setup_2fa')
 @login_required
 def setup_2fa():
     username = session['username']

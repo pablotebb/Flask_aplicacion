@@ -8,6 +8,9 @@ from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import os
 import datetime
+import pyotp
+from werkzeug.exceptions import BadRequestKeyError
+# import qrcode
 
 # auth_bp = Blueprint('auth', __name__)
 
@@ -24,6 +27,11 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        
+        try:
+          otp = request.form['otp']
+        except BadRequestKeyError as e:
+          otp = ''
 
         usuario = Usuario.query.filter_by(username=username, password=password).first()
 
@@ -51,6 +59,7 @@ def register():
         user_profile_pic = ""
         user_created_at = datetime.datetime.now()
         user_is_active = True
+        user_otp_secret = ""
         
         print("Password: ", password)
 
@@ -76,7 +85,7 @@ def register():
         
         # Crear nuevo usuario
         nuevo_usuario = Usuario(username=username, email=email, password=password,
-        profile_pic=user_profile_pic, created_at= user_created_at, is_active=user_is_active)
+        profile_pic=user_profile_pic, created_at= user_created_at, is_active=user_is_active, otp_secret = user_otp_secret)
         db.session.add(nuevo_usuario)
         db.session.commit()
         
