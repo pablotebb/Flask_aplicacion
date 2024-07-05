@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+print("__________________CONFIG____________________")
+
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY')
     SQLALCHEMY_DATABASE_URI = 'sqlite:///usuarios.db'

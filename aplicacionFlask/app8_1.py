@@ -55,49 +55,6 @@ s = URLSafeTimedSerializer(app.secret_key)
 # Resto del código de la aplicación...
 
   
-@app.route('/upload_profile_pic', methods=['GET', 'POST'])
-@login_required
-def upload_profile_pic():
-    if request.method == 'POST' and 'profile_pic' in request.files:
-        file = request.files['profile_pic']
-        filename = secure_filename(file.filename)
-        
-        # Guardar el archivo temporalmente
-        temp_filepath = os.path.join(app.config['UPLOADED_PHOTOS_DEST'], filename)
-        file.save(temp_filepath)
-
-        # Redimensionar la imagen
-        image = Image.open(temp_filepath)
-        image.thumbnail((150, 150))
-        # image.save(temp_filepath)
-
-        # Guardar la imagen final
-        # final_filepath = photos.save(temp_filepath)
-        # os.remove(temp_filepath)  # Eliminar el archivo temporal
-        
-        # Guardar la imagen redimensionada en un objeto BytesIO
-        image_bytes = BytesIO()
-        image.save(image_bytes, format=image.format)
-        image_bytes.seek(0)
-        
-        # Crear un nuevo objeto FileStorage para la imagen redimensionada
-        resized_file = FileStorage(image_bytes, filename=filename, content_type=file.content_type)
-        
-        # Guardar la imagen final
-        final_filepath = photos.save(resized_file)
-        print(f'Final filepath: {final_filepath}')  # Agregar esta línea para depuración
-        os.remove(temp_filepath)  # Eliminar el archivo temporal
-
-        # Actualizar la base de datos con la ruta del archivo final
-        username = session['username']
-        usuario = Usuario.query.filter_by(username=username).first()
-        usuario.profile_pic = final_filepath
-        db.session.commit()
-
-        flash('Foto de perfil subida y redimensionada exitosamente')
-        return redirect(url_for('profile'))
-    return render_template('upload_profile_pic.html')
-  
 
 
 

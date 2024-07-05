@@ -11,9 +11,22 @@ from blueprints.auth import auth_bp
 from blueprints.main import main_bp
 from blueprints.user import user_bp
 
+
+
 def create_app():
+    print("_______________APP___________________")
     app = Flask(__name__)
     app.config.from_object(Config)
+    
+    # print(f"""
+    # -------------------------------
+    # app.__dict__ => {app.__dict__} 
+    # ------------------------------     
+    # """)
+    
+    # print(f"""
+    # app.config.MAIL_USERNAME => {app.config['MAIL_USERNAME']}
+    # """)
 
     # Inicializar extensiones
     db.init_app(app)
@@ -22,14 +35,15 @@ def create_app():
     configure_uploads(app, photos)
     patch_request_class(app)
    
-    print("UPLOADED_PHOTOS_DEST: ", app.config["UPLOADED_PHOTOS_DEST"])
+    # print("UPLOADED_PHOTOS_DEST: ", app.config["UPLOADED_PHOTOS_DEST"])
     mipath = app.config["UPLOADED_PHOTOS_DEST"]
-    print("auth_bp: ", auth_bp)
+    # print("auth_bp: ", auth_bp)
 
     # Registrar Blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(user_bp)
+    
 
     return app
 
